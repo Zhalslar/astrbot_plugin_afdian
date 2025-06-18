@@ -38,30 +38,56 @@ class AfdianPlugin(Star):
         self.token: str = api_config.get("token", "")
         self.client = AfdianAPIClient(self.user_id, self.token)
 
-        # 支付设置
         pay_config = config.get("pay_config", {})
         self.default_price: int = pay_config.get("default_price", 5)
-        self.default_remark: str = pay_config.get("default_remark", [])
+        self.default_reply: str = pay_config.get("default_reply", "赞助成功")
 
         # 接收爱发电通知的会话
         self.notices: list[str] = config.get("notices", [])
 
+        # remark -> session_id
+        self.pending_orders: dict[str, str] = {}
+
     async def on_new_order(self, order) -> None:
         """
         处理新订单的回调。
-
-        Args:
-            order (AfdianOrder): 新订单对象
         """
         logger.info(f"新订单：{order}")
-        message_chain = MessageChain(chain=[Plain(parse_order(order))])
+        message = parse_order(order)
+
+        # 通知全体订阅者
+        message_chain = MessageChain(chain=[Plain(message)])
         for umo in set(self.notices):
             try:
                 await self.context.send_message(
                     session=umo, message_chain=message_chain
                 )
-            except:  # noqa: E722
-                pass
+            except Exception as e:
+                logger.warning(f"通知订阅者失败：{e}")
+
+        # 检查是否为特定用户的订单（通过 remark）
+        sender_id = getattr(order, "remark", "")
+        if sender_id in self.pending_orders:
+            umo = self.pending_orders.pop(sender_id)
+            try:
+                await self.context.send_message(
+                    session=umo,
+                    message_chain=MessageChain(chain=[Plain(self.default_reply)]),
+                )
+            except Exception as e:
+                logger.warning(f"通知用户失败：{e}")
+
+    @filter.command("发电", alias={"赞助"})
+    async def create_order(self, event: AstrMessageEvent, price: int = 10):
+        """
+        /发电 金额数（元） -向创作者发电(备注里填用户ID，如QQ号)
+        """
+        self.pending_orders[event.get_sender_id()] = event.unified_msg_origin
+
+        url = self.client.generate_payment_url(
+            price=price, remark=event.get_sender_id()
+        )
+        yield event.plain_result(url)
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("爱发电通知")
@@ -81,7 +107,6 @@ class AfdianPlugin(Star):
         """测试哪些会话接收爱发电订单通知"""
         await self.on_new_order(self.notices)
         event.stop_event()
-
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("查询订单")
@@ -112,21 +137,6 @@ class AfdianPlugin(Star):
         sponsor_str = "\n\n".join(sponsor_list)
         image = await self.text_to_image(text=sponsor_str)
         yield event.image_result(image)
-
-
-    @filter.command("发电", alias={"赞助"})
-    async def create_order(
-        self, event: AstrMessageEvent, price: int = 5, remark: str | None = None
-    ):
-        """
-        /发电 金额数（元） -向创作者发电
-        """
-        url = self.client.generate_payment_url(
-            price=price or self.default_price,
-            remark=remark or self.default_remark
-        )
-        yield event.plain_result(url)
-
 
     async def terminate(self):
         """

@@ -39,16 +39,16 @@
         "hint": "插件会根据支付信息生成一个链接，用户点击链接后跳转到爱发电支付页面",
         "items": {
             "default_price": {
-                "description": "发起支付时的默认价格",
+                "description": "发起赞助时的默认价格",
                 "type": "int",
                 "hint": "",
                 "default": 5
             },
-            "default_remark": {
-                "description": "发起支付时的默认留言",
+            "default_reply": {
+                "description": "赞助成功后的默认回复语",
                 "type": "string",
                 "hint": "",
-                "default": "你的作品真棒！请你喝杯咖啡☕️"
+                "default": "赞助成功，感谢支持！"
             }
         }
     },
