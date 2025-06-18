@@ -1,0 +1,61 @@
+{
+    "webhook_config": {
+        "description": "webhook配置",
+        "type": "object",
+        "hint": "爱发电主动推送订单消息到你的服务器",
+        "items": {
+            "host": {
+                "description": "地址",
+                "type": "string",
+                "hint": "默认的0.0.0.0表示监听所有",
+                "default": "0.0.0.0"
+            },
+            "port": {
+                "description": "端口",
+                "type": "int",
+                "hint": "需要开放你服务器的这个端口",
+                "default": 6500
+            }
+        }
+    },
+    "api_config": {
+        "description": "API配置",
+        "type": "object",
+        "hint": "通过API主动获取订单订单消息, 请在爱发电APP的“个人”->“右上角”->“开发者”中查看你的user_id和Token",
+        "items": {
+            "user_id": {
+                "description": "user_id",
+                "type": "string"
+            },
+            "token": {
+                "description": "api_token",
+                "type": "string"
+            }
+        }
+    },
+    "pay_config": {
+        "description": "支付设置",
+        "type": "object",
+        "hint": "插件会根据支付信息生成一个链接，用户点击链接后跳转到爱发电支付页面",
+        "items": {
+            "default_price": {
+                "description": "发起支付时的默认价格",
+                "type": "int",
+                "hint": "",
+                "default": 5
+            },
+            "default_remark": {
+                "description": "发起支付时的默认留言",
+                "type": "string",
+                "hint": "",
+                "default": "你的作品真棒！请你喝杯咖啡☕️"
+            }
+        }
+    },
+    "notices": {
+        "description": "接收订单通知的会话ID",
+        "type": "list",
+        "hint": "可不填，在会话中用“开启爱发电通知”即可开启通知",
+        "default": []
+    }
+}
