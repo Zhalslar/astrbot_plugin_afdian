@@ -78,14 +78,14 @@ class AfdianPlugin(Star):
                 logger.warning(f"通知用户失败：{e}")
 
     @filter.command("发电", alias={"赞助"})
-    async def create_order(self, event: AstrMessageEvent, price: int = 10):
+    async def create_order(self, event: AstrMessageEvent, price: int | None = None):
         """
         /发电 金额数（元） -向创作者发电(备注里填用户ID，如QQ号)
         """
         self.pending_orders[event.get_sender_id()] = event.unified_msg_origin
 
         url = self.client.generate_payment_url(
-            price=price, remark=event.get_sender_id()
+            price=price or self.default_price, remark=event.get_sender_id()
         )
         yield event.plain_result(url)
 
