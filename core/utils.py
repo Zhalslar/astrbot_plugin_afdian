@@ -4,6 +4,8 @@ from datetime import datetime
 @staticmethod
 def format_time(timestamp):
     """格式化时间戳为日期时间字符串"""
+    if not timestamp:
+        return None
     return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -25,7 +27,7 @@ def parse_order(order: dict) -> str:
         "折扣": order.get("discount"),
         "备注": order.get("remark"),
         "兑换码ID": order.get("redeem_id"),
-        "创建时间": format_time(int(order["create_time"])),
+        "创建时间": format_time(order.get("create_time", 0)),
     }
 
     # 构建非空字段的输出行
@@ -42,7 +44,7 @@ def parse_order(order: dict) -> str:
         if any(sku.get(key) for key in ("name", "count", "sku_id"))
     ]
     if sku_lines:
-        lines.append("SKU 列表：")
+        lines.append("- SKU 列表：")
         lines.extend(sku_lines)
 
     return "\n".join(lines)

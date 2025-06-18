@@ -1,12 +1,12 @@
 import asyncio
 from astrbot.api.star import Context, Star, register
 from astrbot.core.config.astrbot_config import AstrBotConfig
-from astrbot.core.message.components import Plain
+from astrbot.core.message.components import Image, Plain
 from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.api.event import filter
 from astrbot import logger
-
+from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
 from data.plugins.astrbot_plugin_afdian.core.afdian_api import AfdianAPIClient
 from data.plugins.astrbot_plugin_afdian.core.afdian_webhook import AfdianWebhookServer
 from data.plugins.astrbot_plugin_afdian.core.utils import parse_order, parse_sponsors
@@ -43,39 +43,49 @@ class AfdianPlugin(Star):
         self.default_reply: str = pay_config.get("default_reply", "赞助成功")
 
         # 接收爱发电通知的会话
-        self.notices: list[str] = config.get("notices", [])
+        self.notice_sessions: list[str] = config.get("notices", [])
 
         # remark -> session_id
         self.pending_orders: dict[str, str] = {}
 
-    async def on_new_order(self, order) -> None:
+        # 当前机器人
+        self.bots = []
+
+
+    async def on_new_order(self, order: dict | None = None):
         """
-        处理新订单的回调。
+        处理新订单的回调。通知订阅者，但失败不会影响主流程。
         """
         logger.info(f"新订单：{order}")
-        message = parse_order(order)
+        message = parse_order(order) if order else "爱发电测试"
+        image = await self.text_to_image(message)
 
-        # 通知全体订阅者
-        message_chain = MessageChain(chain=[Plain(message)])
-        for umo in set(self.notices):
+        # 通知所有订阅者（失败不会中断流程）
+        for umo in set(self.notice_sessions):
             try:
                 await self.context.send_message(
-                    session=umo, message_chain=message_chain
+                    session=umo, message_chain=MessageChain(chain=[Image(image)])
                 )
             except Exception as e:
-                logger.warning(f"通知订阅者失败：{e}")
+                logger.warning(f"[通知失败] 订阅者 {umo}：{e}")
 
-        # 检查是否为特定用户的订单（通过 remark）
-        sender_id = getattr(order, "remark", "")
-        if sender_id in self.pending_orders:
-            umo = self.pending_orders.pop(sender_id)
-            try:
-                await self.context.send_message(
-                    session=umo,
-                    message_chain=MessageChain(chain=[Plain(self.default_reply)]),
-                )
-            except Exception as e:
-                logger.warning(f"通知用户失败：{e}")
+        # 检查是否为特定用户的订单（通过 remark 作为 sender_id）
+        if order:
+            sender_id = order.get("remark") or ""
+            if sender_id in self.pending_orders:
+                umo = self.pending_orders.pop(sender_id)
+                try:
+                    await self.context.send_message(
+                        session=umo,
+                        message_chain=MessageChain(chain=[Plain(self.default_reply)]),
+                    )
+                except Exception as e:
+                    # 不太优雅的备用方案
+                    if self.bots:
+                        await self.bots[0].send_private_msg(user_id=int(sender_id), message=message)
+                    else:
+                        logger.warning(f"[通知失败] 特定用户 {umo}：{e}")
+
 
     @filter.command("发电", alias={"赞助"})
     async def create_order(self, event: AstrMessageEvent, price: int | None = None):
@@ -83,7 +93,10 @@ class AfdianPlugin(Star):
         /发电 金额数（元） -向创作者发电(备注里填用户ID，如QQ号)
         """
         self.pending_orders[event.get_sender_id()] = event.unified_msg_origin
-
+        if event.get_platform_name() == "aiocqhttp":
+            assert isinstance(event, AiocqhttpMessageEvent)
+            self.bots.clear()
+            self.bots.append(event.bot)
         url = self.client.generate_payment_url(
             price=price or self.default_price, remark=event.get_sender_id()
         )
@@ -93,10 +106,10 @@ class AfdianPlugin(Star):
     @filter.command("爱发电通知")
     async def afdian_notice(self, event: AstrMessageEvent):
         umo = event.unified_msg_origin
-        if umo in self.notices:
+        if umo in self.notice_sessions:
             yield event.plain_result("当前会话无需重复开启爱发电")
             return
-        self.notices.append(umo)
+        self.notice_sessions.append(umo)
         self.config.save_config()
         yield event.plain_result(
             f"已在当前会话({event.unified_msg_origin})开启爱发电通知"
@@ -105,7 +118,7 @@ class AfdianPlugin(Star):
     @filter.command("爱发电测试")
     async def test(self, event: AstrMessageEvent):
         """测试哪些会话接收爱发电订单通知"""
-        await self.on_new_order(self.notices)
+        await self.on_new_order()
         event.stop_event()
 
     @filter.permission_type(filter.PermissionType.ADMIN)

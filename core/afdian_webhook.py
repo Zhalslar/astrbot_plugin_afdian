@@ -47,7 +47,7 @@ class AfdianWebhookServer:
             return web.json_response({"ec": 500, "em": "server error"}, status=500)
 
     async def handle_order(self, order: dict):
-        self.db.save_order(order)
+        self.db.save_order(order) # type: ignore
         logger.info(f"订单保存成功：{order.get('out_trade_no')}")
 
         if self._order_callback:
