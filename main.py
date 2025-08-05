@@ -144,7 +144,7 @@ class AfdianPlugin(Star):
         """查询自己的收到的发电情况"""
         sponsor_user_ids = sponsor_user_ids or self.user_id
         sponsors = await self.client.query_sponsor(sponsor_user_ids=sponsor_user_ids)
-        if not sponsors.get("list"):  # 更准确地判断是否有数据
+        if not sponsors.get("list"):
             yield event.plain_result("未找到赞助记录")
             return
         sponsor_list = parse_sponsors(sponsors)
