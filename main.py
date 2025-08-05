@@ -1,12 +1,15 @@
 import asyncio
+
+from astrbot import logger
+from astrbot.api.event import filter
 from astrbot.api.star import Context, Star, register
 from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.core.message.components import Image, Plain
 from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
-from astrbot.api.event import filter
-from astrbot import logger
-from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
+from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import (
+    AiocqhttpMessageEvent,
+)
 from data.plugins.astrbot_plugin_afdian.core.afdian_api import AfdianAPIClient
 from data.plugins.astrbot_plugin_afdian.core.afdian_webhook import AfdianWebhookServer
 from data.plugins.astrbot_plugin_afdian.core.utils import parse_order, parse_sponsors
@@ -51,7 +54,6 @@ class AfdianPlugin(Star):
         # 当前机器人
         self.bots = []
 
-
     async def on_new_order(self, order: dict | None = None):
         """
         处理新订单的回调。通知订阅者，但失败不会影响主流程。
@@ -82,10 +84,11 @@ class AfdianPlugin(Star):
                 except Exception as e:
                     # 不太优雅的备用方案
                     if self.bots:
-                        await self.bots[0].send_private_msg(user_id=int(sender_id), message=message)
+                        await self.bots[0].send_private_msg(
+                            user_id=int(sender_id), message=message
+                        )
                     else:
                         logger.warning(f"[通知失败] 特定用户 {umo}：{e}")
-
 
     @filter.command("发电", alias={"赞助"})
     async def create_order(self, event: AstrMessageEvent, price: int | None = None):
@@ -124,7 +127,7 @@ class AfdianPlugin(Star):
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("查询订单")
     async def query_order(self, event: AstrMessageEvent, out_trade_no: str):
-        """查询订单"""
+        """查询订单 订单号"""
         orders = await self.client.query_order(out_trade_no=out_trade_no)
         if not orders:
             yield event.plain_result("未找到该订单")
@@ -138,13 +141,11 @@ class AfdianPlugin(Star):
     async def query_sponsor(
         self, event: AstrMessageEvent, sponsor_user_ids: str | None = None
     ):
-        """
-        查询自己的收到的发电情况
-        """
+        """查询自己的收到的发电情况"""
         sponsor_user_ids = sponsor_user_ids or self.user_id
         sponsors = await self.client.query_sponsor(sponsor_user_ids=sponsor_user_ids)
-        if not sponsors:
-            yield event.plain_result("未找到该订单")
+        if not sponsors.get("list"):  # 更准确地判断是否有数据
+            yield event.plain_result("未找到赞助记录")
             return
         sponsor_list = parse_sponsors(sponsors)
         sponsor_str = "\n\n".join(sponsor_list)
