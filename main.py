@@ -27,7 +27,7 @@ class AfdianPlugin(Star):
         # WebHook方案
         self.webhook_config = config.get("webhook_config", {})
         self.host = self.webhook_config.get("host", "")
-        self.post = self.webhook_config.get("post", "")
+        self.port = self.webhook_config.get("port", "")
 
         # API方案
         api_config = config.get("api_config", {})
@@ -52,7 +52,7 @@ class AfdianPlugin(Star):
         db_path = self.plugin_data_dir / "orders.db"
         self.server = AfdianWebhookServer(
             host=self.host,
-            port=self.post,
+            port=self.port,
             db_path=db_path,
         )
         await self.server.start()
@@ -111,24 +111,6 @@ class AfdianPlugin(Star):
         )
         yield event.plain_result(url)
 
-    @filter.permission_type(filter.PermissionType.ADMIN)
-    @filter.command("爱发电通知")
-    async def afdian_notice(self, event: AstrMessageEvent):
-        umo = event.unified_msg_origin
-        if umo in self.notice_sessions:
-            yield event.plain_result("当前会话无需重复开启爱发电")
-            return
-        self.notice_sessions.append(umo)
-        self.config.save_config()
-        yield event.plain_result(
-            f"已在当前会话({event.unified_msg_origin})开启爱发电通知"
-        )
-
-    @filter.command("爱发电测试")
-    async def test(self, event: AstrMessageEvent):
-        """测试哪些会话接收爱发电订单通知"""
-        await self.on_new_order()
-        event.stop_event()
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("查询订单")

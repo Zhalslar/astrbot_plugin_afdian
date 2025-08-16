@@ -1,4 +1,4 @@
-import os
+
 from pathlib import Path
 import sqlite3
 import json
@@ -69,6 +69,9 @@ class OrderDB:
             )
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_create_time ON afdian_orders(create_time)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_remark ON afdian_orders(remark)"
             )
             conn.commit()
 
