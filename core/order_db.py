@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import sqlite3
 import json
 from decimal import Decimal
@@ -28,8 +29,8 @@ class OrderDict(TypedDict, total=False):
 
 
 class OrderDB:
-    def __init__(self, db_path: Optional[str] = None):
-        self.db_path = db_path or os.path.join(os.getcwd(), "orders.db")
+    def __init__(self, db_path: str|Path):
+        self.db_path = str(db_path)
         self._init_db()
 
     def _init_db(self):

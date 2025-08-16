@@ -1,5 +1,4 @@
-import asyncio
-from astrbot.api.star import Context, Star, register
+from astrbot.api.star import Context, Star, register, StarTools
 from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.core.message.components import Image, Plain
 from astrbot.core.message.message_event_result import MessageChain
@@ -16,27 +15,24 @@ from data.plugins.astrbot_plugin_afdian.core.utils import parse_order, parse_spo
     "astrbot_plugin_afdian",
     "Zhalslar",
     "爱发电插件",
-    "1.0.0",
+    "1.0.1",
     "https://github.com/Zhalslar/astrbot_plugin_afdian",
 )
 class AfdianPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         self.config = config
+        self.plugin_data_dir = StarTools.get_data_dir("astrbot_plugin_afdian")
 
         # WebHook方案
-        webhook_config = config.get("webhook_config", {})
-        self.host: str = webhook_config.get("host", "")
-        self.port: int = webhook_config.get("port", 6500)
-        self.server = AfdianWebhookServer(self.host, self.port)
-        asyncio.create_task(self.server.start())
-        self.server.register_order_callback(self.on_new_order)
+        self.webhook_config = config.get("webhook_config", {})
+        self.host = self.webhook_config.get("host", "")
+        self.post = self.webhook_config.get("post", "")
 
         # API方案
         api_config = config.get("api_config", {})
         self.user_id: str = api_config.get("user_id", "")
         self.token: str = api_config.get("token", "")
-        self.client = AfdianAPIClient(self.user_id, self.token)
 
         pay_config = config.get("pay_config", {})
         self.default_price: int = pay_config.get("default_price", 5)
@@ -50,6 +46,19 @@ class AfdianPlugin(Star):
 
         # 当前机器人
         self.bots = []
+
+    async def initialize(self):
+        # WebHook方案
+        db_path = self.plugin_data_dir / "orders.db"
+        self.server = AfdianWebhookServer(
+            host=self.host,
+            port=self.post,
+            db_path=db_path,
+        )
+        await self.server.start()
+        self.server.register_order_callback(self.on_new_order)
+        # API方案
+        self.client = AfdianAPIClient(self.user_id, self.token)
 
 
     async def on_new_order(self, order: dict | None = None):

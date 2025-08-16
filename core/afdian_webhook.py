@@ -1,15 +1,16 @@
 
 import json
+from pathlib import Path
 from aiohttp import web
 from astrbot import logger
-from data.plugins.astrbot_plugin_afdian.core.order_db import OrderDB
+from .order_db import OrderDB
 
 
 class AfdianWebhookServer:
-    def __init__(self, host="0.0.0.0", port=6500):
+    def __init__(self, host: str, port: int, db_path: str|Path):
         self.host = host
         self.port = port
-        self.db = OrderDB()
+        self.db = OrderDB(db_path)
         self._order_callback = None
         self.app = web.Application()
         self.runner = None
