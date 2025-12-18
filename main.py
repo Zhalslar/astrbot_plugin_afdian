@@ -1,23 +1,19 @@
-from astrbot.api.star import Context, Star, register, StarTools
+from astrbot import logger
+from astrbot.api.event import filter
+from astrbot.api.star import Context, Star, StarTools
 from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.core.message.components import Image, Plain
 from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
-from astrbot.api.event import filter
-from astrbot import logger
-from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-from data.plugins.astrbot_plugin_afdian.core.afdian_api import AfdianAPIClient
-from data.plugins.astrbot_plugin_afdian.core.afdian_webhook import AfdianWebhookServer
-from data.plugins.astrbot_plugin_afdian.core.utils import parse_order, parse_sponsors
-
-
-@register(
-    "astrbot_plugin_afdian",
-    "Zhalslar",
-    "爱发电插件",
-    "1.0.1",
-    "https://github.com/Zhalslar/astrbot_plugin_afdian",
+from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import (
+    AiocqhttpMessageEvent,
 )
+
+from .core.afdian_api import AfdianAPIClient
+from .core.afdian_webhook import AfdianWebhookServer
+from .core.utils import parse_order, parse_sponsors
+
+
 class AfdianPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)

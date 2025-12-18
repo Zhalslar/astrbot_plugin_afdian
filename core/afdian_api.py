@@ -1,8 +1,10 @@
-import time
 import hashlib
 import json
+import time
+
 import aiohttp
-from astrbot import logger
+
+from astrbot.api import logger
 
 
 class AfdianAPIClient:

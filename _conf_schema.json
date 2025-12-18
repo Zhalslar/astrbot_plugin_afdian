@@ -40,8 +40,13 @@
         "items": {
             "default_price": {
                 "description": "发起赞助时的默认金额",
-                "type": "int",
                 "hint": "单位：元",
+                "type": "int",
+                "slider": {
+                    "min": 1,
+                    "max": 100,
+                    "step": 5
+                },
                 "default": 5
             },
             "default_reply": {

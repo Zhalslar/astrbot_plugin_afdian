@@ -1,9 +1,9 @@
 
-from pathlib import Path
-import sqlite3
 import json
+import sqlite3
 from decimal import Decimal
-from typing import List, Optional, Union, TypedDict
+from pathlib import Path
+from typing import TypedDict
 
 
 class OrderDict(TypedDict, total=False):
@@ -14,11 +14,11 @@ class OrderDict(TypedDict, total=False):
     plan_id: str
     plan_title: str
     month: int
-    total_amount: Union[str, float, int]
-    show_amount: Union[str, float, int]
+    total_amount: str | float | int
+    show_amount: str | float | int
     status: int
     product_type: int
-    discount: Union[str, float, int]
+    discount: str | float | int
     remark: str
     redeem_id: str
     sku_detail: list
@@ -113,7 +113,7 @@ class OrderDB:
             )
             conn.commit()
 
-    def get_all_orders(self) -> List[sqlite3.Row]:
+    def get_all_orders(self) -> list[sqlite3.Row]:
         """获取所有订单（按时间降序）"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -121,7 +121,7 @@ class OrderDB:
             cursor.execute("SELECT * FROM afdian_orders ORDER BY create_time DESC")
             return cursor.fetchall()
 
-    def get_order_by_id(self, out_trade_no: str) -> Optional[sqlite3.Row]:
+    def get_order_by_id(self, out_trade_no: str) -> sqlite3.Row | None:
         """根据订单号获取订单"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -131,7 +131,7 @@ class OrderDB:
             )
             return cursor.fetchone()
 
-    def get_orders_by_user(self, user_id: str) -> List[sqlite3.Row]:
+    def get_orders_by_user(self, user_id: str) -> list[sqlite3.Row]:
         """获取指定用户的所有订单"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -142,7 +142,7 @@ class OrderDB:
             )
             return cursor.fetchall()
 
-    def get_orders_by_status(self, status: int) -> List[sqlite3.Row]:
+    def get_orders_by_status(self, status: int) -> list[sqlite3.Row]:
         """按订单状态筛选"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -154,7 +154,7 @@ class OrderDB:
             return cursor.fetchall()
 
     @staticmethod
-    def _safe_float(value: Union[str, float, int, Decimal, None]) -> float:
+    def _safe_float(value: str | float | int | Decimal | None) -> float:
         """将任意值转换为 float，失败则返回 0.0"""
         try:
             return float(value) # type: ignore
