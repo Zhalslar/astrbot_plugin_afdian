@@ -43,7 +43,7 @@
                 "hint": "单位：元",
                 "type": "int",
                 "slider": {
-                    "min": 1,
+                    "min": 0,
                     "max": 100,
                     "step": 5
                 },
