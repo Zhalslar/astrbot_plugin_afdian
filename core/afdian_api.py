@@ -14,7 +14,7 @@ class AfdianAPIClient:
         """
         self.user_id = user_id
         self.token = token
-        self.base_url = "https://afdian.com/api/open"
+        self.base_url = "https://ifdian.net/api/open"
         self.session = aiohttp.ClientSession()
 
     async def close(self):
@@ -105,7 +105,7 @@ class AfdianAPIClient:
         """
         price_str = f"{round(price, 2):.2f}"
         url = (
-            f"https://afdian.com/order/create?"
+            f"https://ifdian.net/order/create?"
             f"user_id={self.user_id}"
             f"&remark={remark}"
             f"&custom_price={price_str}"
