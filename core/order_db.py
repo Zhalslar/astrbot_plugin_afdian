@@ -1,4 +1,3 @@
-
 import json
 import sqlite3
 from decimal import Decimal
@@ -29,7 +28,7 @@ class OrderDict(TypedDict, total=False):
 
 
 class OrderDB:
-    def __init__(self, db_path: str|Path):
+    def __init__(self, db_path: str | Path):
         self.db_path = str(db_path)
         self._init_db()
 
@@ -157,6 +156,6 @@ class OrderDB:
     def _safe_float(value: str | float | int | Decimal | None) -> float:
         """将任意值转换为 float，失败则返回 0.0"""
         try:
-            return float(value) # type: ignore
+            return float(value)  # type: ignore
         except (ValueError, TypeError):
             return 0.0

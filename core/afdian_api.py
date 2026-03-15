@@ -6,17 +6,17 @@ import aiohttp
 
 from astrbot.api import logger
 
+from .config import PluginConfig
+
 
 class AfdianAPIClient:
-    def __init__(self, user_id: str, token: str):
+    def __init__(self, config: PluginConfig):
         """
         Afdian 异步 API 客户端
         :param user_id: 爱发电用户 ID
         :param token: 爱发电开放平台 Token，用于签名
         """
-        self.user_id = user_id
-        self.token = token
-        self.base_url = "https://afdian.com/api/open"
+        self.cfg = config.api
         self.session = aiohttp.ClientSession()
 
     async def close(self):
@@ -31,8 +31,8 @@ class AfdianAPIClient:
         :return: MD5 签名字符串
         """
         params_str = json.dumps(params, separators=(",", ":"))
-        kv_string = f"params{params_str}ts{ts}user_id{self.user_id}"
-        sign_raw = self.token + kv_string
+        kv_string = f"params{params_str}ts{ts}user_id{self.cfg.user_id}"
+        sign_raw = self.cfg.token + kv_string
         return hashlib.md5(sign_raw.encode("utf-8")).hexdigest()
 
     async def _post(self, endpoint: str, params: dict) -> dict:
@@ -45,13 +45,13 @@ class AfdianAPIClient:
         ts = int(time.time())
         sign = self._generate_sign(params, ts)
         payload = {
-            "user_id": self.user_id,
+            "user_id": self.cfg.user_id,
             "params": json.dumps(params, separators=(",", ":")),
             "ts": ts,
             "sign": sign,
         }
 
-        url = self.base_url + endpoint
+        url = self.cfg.base_url + endpoint
         try:
             async with self.session.post(url, json=payload, timeout=10) as resp: # type: ignore
                 resp.raise_for_status()
@@ -108,7 +108,7 @@ class AfdianAPIClient:
         price_str = f"{round(price, 2):.2f}"
         url = (
             f"https://afdian.com/order/create?"
-            f"user_id={self.user_id}"
+            f"user_id={self.cfg.user_id}"
             f"&remark={remark}"
             f"&custom_price={price_str}"
         )

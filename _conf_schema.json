@@ -1,5 +1,5 @@
 {
-    "webhook_config": {
+    "webhook": {
         "description": "webhook配置",
         "type": "object",
         "hint": "爱发电主动推送订单消息到你的服务器",
@@ -18,22 +18,32 @@
             }
         }
     },
-    "api_config": {
+    "api": {
         "description": "API配置",
         "type": "object",
-        "hint": "通过API主动获取订单订单消息, 请在爱发电APP的“个人”->“右上角”->“开发者”中查看你的user_id和Token",
+        "hint": "通过API主动获取订单订单消息",
         "items": {
+            "base_url": {
+                "description": "爱发电根地址",
+                "type": "string",
+                "hint": "默认 https://afdian.com/api/open，修改后会同时影响 API 请求和支付链接",
+                "default": "https://afdian.com/api/open"
+            },
             "user_id": {
                 "description": "user_id",
-                "type": "string"
+                "type": "string",
+                "hint": "用户 ID。请在爱发电APP的“个人”->“右上角”->“开发者”中查看",
+                "default": ""
             },
             "token": {
                 "description": "api_token",
-                "type": "string"
+                "type": "string",
+                "hint": "API 密钥。请在爱发电APP的“个人”->“右上角”->“开发者”中查看",
+                "default": ""
             }
         }
     },
-    "pay_config": {
+    "pay": {
         "description": "支付设置",
         "type": "object",
         "hint": "插件会根据支付信息生成一个链接，用户点击链接后跳转到爱发电支付页面",
@@ -57,7 +67,7 @@
             }
         }
     },
-    "notices": {
+    "notice_sessions": {
         "description": "接收订单通知的会话ID",
         "type": "list",
         "hint": "可不填，在会话中用“爱发电通知”即可开启通知",
