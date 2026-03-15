@@ -1,19 +1,17 @@
-
 import json
-from pathlib import Path
 
 from aiohttp import web
 
 from astrbot.api import logger
 
+from .config import PluginConfig
 from .order_db import OrderDB
 
 
 class AfdianWebhookServer:
-    def __init__(self, host: str, port: int, db_path: str|Path):
-        self.host = host
-        self.port = port
-        self.db = OrderDB(db_path)
+    def __init__(self, config: PluginConfig, db: OrderDB):
+        self.cfg = config.webhook
+        self.db = db
         self._order_callback = None
         self.app = web.Application()
         self.runner = None
@@ -51,7 +49,7 @@ class AfdianWebhookServer:
             return web.json_response({"ec": 500, "em": "server error"}, status=500)
 
     async def handle_order(self, order: dict):
-        self.db.save_order(order) # type: ignore
+        self.db.save_order(order)  # type: ignore
         logger.info(f"订单保存成功：{order.get('out_trade_no')}")
 
         if self._order_callback:
@@ -59,7 +57,7 @@ class AfdianWebhookServer:
                 if hasattr(self._order_callback, "__call__"):
                     res = self._order_callback(order)
                     if hasattr(res, "__await__"):
-                        await res  # 兼容 async 回调
+                        await res  # type: ignore # 兼容 async 回调
 
     async def start(self):
         """异步启动 aiohttp Webhook 服务"""
@@ -68,9 +66,9 @@ class AfdianWebhookServer:
             return
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        self.site = web.TCPSite(self.runner, host=self.host, port=self.port)
+        self.site = web.TCPSite(self.runner, host=self.cfg.host, port=self.cfg.port)
         await self.site.start()
-        logger.info(f"爱发电 Webhook 服务已启动：监听 {self.host}:{self.port}")
+        logger.info(f"爱发电 Webhook 服务已启动：监听 {self.cfg.host}:{self.cfg.port}")
 
     async def stop(self):
         """异步关闭 Webhook 服务"""
@@ -79,5 +77,3 @@ class AfdianWebhookServer:
         if self.runner:
             await self.runner.cleanup()
         logger.info("爱发电 Webhook 服务已关闭")
-
-

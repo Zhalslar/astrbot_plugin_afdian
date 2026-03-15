@@ -1,6 +1,6 @@
 from astrbot import logger
 from astrbot.api.event import filter
-from astrbot.api.star import Context, Star, StarTools
+from astrbot.api.star import Context, Star
 from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.core.message.components import Image, Plain
 from astrbot.core.message.message_event_result import MessageChain
@@ -11,51 +11,36 @@ from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import (
 
 from .core.afdian_api import AfdianAPIClient
 from .core.afdian_webhook import AfdianWebhookServer
+from .core.config import PluginConfig
+from .core.order_db import OrderDB
 from .core.utils import parse_order, parse_sponsors
 
 
 class AfdianPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
-        self.config = config
-        self.plugin_data_dir = StarTools.get_data_dir("astrbot_plugin_afdian")
-
+        self.context = context
+        self.cfg = PluginConfig(config, context)
+        # 数据库
+        self.db = OrderDB(self.cfg.db_path)
         # WebHook方案
-        self.webhook_config = config.get("webhook_config", {})
-        self.host = self.webhook_config.get("host", "")
-        self.port = self.webhook_config.get("port", "")
-
+        self.server = AfdianWebhookServer(self.cfg, self.db)
         # API方案
-        api_config = config.get("api_config", {})
-        self.user_id: str = api_config.get("user_id", "")
-        self.token: str = api_config.get("token", "")
-
-        pay_config = config.get("pay_config", {})
-        self.default_price: int = pay_config.get("default_price", 5)
-        self.default_reply: str = pay_config.get("default_reply", "赞助成功")
-
-        # 接收爱发电通知的会话
-        self.notice_sessions: list[str] = config.get("notices", [])
-
+        self.client = AfdianAPIClient(self.cfg)
         # remark -> session_id
         self.pending_orders: dict[str, str] = {}
-
         # 当前机器人
         self.bots = []
 
     async def initialize(self):
-        # WebHook方案
-        db_path = self.plugin_data_dir / "orders.db"
-        self.server = AfdianWebhookServer(
-            host=self.host,
-            port=self.port,
-            db_path=db_path,
-        )
+        """插件加载时"""
         await self.server.start()
         self.server.register_order_callback(self.on_new_order)
-        # API方案
-        self.client = AfdianAPIClient(self.user_id, self.token)
 
+    async def terminate(self):
+        """插件卸载时"""
+        await self.server.stop()
+        await self.client.close()
 
     async def on_new_order(self, order: dict | None = None):
         """
@@ -66,7 +51,7 @@ class AfdianPlugin(Star):
         image = await self.text_to_image(message)
 
         # 通知所有订阅者（失败不会中断流程）
-        for umo in set(self.notice_sessions):
+        for umo in self.cfg.notice_sessions:
             try:
                 await self.context.send_message(
                     session=umo, message_chain=MessageChain(chain=[Image(image)])
@@ -82,15 +67,18 @@ class AfdianPlugin(Star):
                 try:
                     await self.context.send_message(
                         session=umo,
-                        message_chain=MessageChain(chain=[Plain(self.default_reply)]),
+                        message_chain=MessageChain(
+                            chain=[Plain(self.cfg.pay.default_reply)]
+                        ),
                     )
                 except Exception as e:
                     # 不太优雅的备用方案
                     if self.bots:
-                        await self.bots[0].send_private_msg(user_id=int(sender_id), message=message)
+                        await self.bots[0].send_private_msg(
+                            user_id=int(sender_id), message=message
+                        )
                     else:
                         logger.warning(f"[通知失败] 特定用户 {umo}：{e}")
-
 
     @filter.command("发电", alias={"赞助"})
     async def create_order(self, event: AstrMessageEvent, price: int | None = None):
@@ -103,10 +91,9 @@ class AfdianPlugin(Star):
             self.bots.clear()
             self.bots.append(event.bot)
         url = self.client.generate_payment_url(
-            price=price or self.default_price, remark=event.get_sender_id()
+            price=price or self.cfg.pay.default_price, remark=event.get_sender_id()
         )
         yield event.plain_result(url)
-
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("查询订单")
@@ -128,7 +115,7 @@ class AfdianPlugin(Star):
         """
         查询自己的收到的发电情况
         """
-        sponsor_user_ids = sponsor_user_ids or self.user_id
+        sponsor_user_ids = sponsor_user_ids or self.cfg.api.user_id
         sponsors = await self.client.query_sponsor(sponsor_user_ids=sponsor_user_ids)
         if not sponsors:
             yield event.plain_result("未找到该订单")
@@ -138,9 +125,12 @@ class AfdianPlugin(Star):
         image = await self.text_to_image(text=sponsor_str)
         yield event.image_result(image)
 
-    async def terminate(self):
-        """
-        当插件被禁用、重载插件时，会调用这个方法优雅地关闭爱发电 Webhook 服务。
-        """
-        await self.server.stop()
-        await self.client.close()
+    @filter.permission_type(filter.PermissionType.ADMIN)
+    @filter.command("开启发电通知", alias={"发电通知", "爱发电通知"})
+    async def add_notice_session(
+        self, event: AstrMessageEvent, sponsor_user_ids: str | None = None
+    ):
+        """在当前会话接收爱发电的通知"""
+        umo = event.unified_msg_origin
+        self.cfg.add_notice_session(umo)
+        yield event.plain_result(f"[爱发电]：已添加 {umo} 为通知会话")
