@@ -135,4 +135,7 @@ class PluginConfig(ConfigNode):
         self.data_dir = Path(get_astrbot_plugin_data_path()) / self._plugin_name
         self.db_path = self.data_dir / "orders.db"
 
-
+    def add_notice_session(self, session_id: str) -> None:
+        if session_id not in self.notice_sessions:
+            self.notice_sessions.append(session_id)
+            self.save_config()

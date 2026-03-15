@@ -42,7 +42,6 @@ class AfdianPlugin(Star):
         await self.server.stop()
         await self.client.close()
 
-
     async def on_new_order(self, order: dict | None = None):
         """
         处理新订单的回调。通知订阅者，但失败不会影响主流程。
@@ -68,7 +67,9 @@ class AfdianPlugin(Star):
                 try:
                     await self.context.send_message(
                         session=umo,
-                        message_chain=MessageChain(chain=[Plain(self.cfg.pay.default_reply)]),
+                        message_chain=MessageChain(
+                            chain=[Plain(self.cfg.pay.default_reply)]
+                        ),
                     )
                 except Exception as e:
                     # 不太优雅的备用方案
@@ -124,3 +125,12 @@ class AfdianPlugin(Star):
         image = await self.text_to_image(text=sponsor_str)
         yield event.image_result(image)
 
+    @filter.permission_type(filter.PermissionType.ADMIN)
+    @filter.command("开启发电通知", alias={"发电通知", "爱发电通知"})
+    async def add_notice_session(
+        self, event: AstrMessageEvent, sponsor_user_ids: str | None = None
+    ):
+        """在当前会话接收爱发电的通知"""
+        umo = event.unified_msg_origin
+        self.cfg.add_notice_session(umo)
+        yield event.plain_result(f"[爱发电]：已添加 {umo} 为通知会话")
