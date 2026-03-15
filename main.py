@@ -127,10 +127,8 @@ class AfdianPlugin(Star):
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("开启发电通知", alias={"发电通知", "爱发电通知"})
-    async def add_notice_session(
-        self, event: AstrMessageEvent, sponsor_user_ids: str | None = None
-    ):
+    async def add_notice_session(self, event: AstrMessageEvent, umo: str | None = None):
         """在当前会话接收爱发电的通知"""
-        umo = event.unified_msg_origin
+        umo = umo or event.unified_msg_origin
         self.cfg.add_notice_session(umo)
         yield event.plain_result(f"[爱发电]：已添加 {umo} 为通知会话")
