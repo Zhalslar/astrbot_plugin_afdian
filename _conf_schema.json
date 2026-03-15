@@ -1,27 +1,57 @@
 {
     "webhook_config": {
-        "description": "webhook配置",
+        "description": "Webhook 配置",
         "type": "object",
-        "hint": "爱发电主动推送订单消息到你的服务器",
+        "hint": "爱发电会主动把订单通知推送到这里",
         "items": {
             "host": {
-                "description": "地址",
+                "description": "监听地址",
                 "type": "string",
-                "hint": "默认的0.0.0.0表示监听所有",
+                "hint": "默认 0.0.0.0 表示监听所有地址",
                 "default": "0.0.0.0"
             },
             "port": {
-                "description": "端口",
+                "description": "监听端口",
                 "type": "int",
-                "hint": "需要开放你服务器的这个端口",
+                "hint": "请确保服务器开放了这个端口",
                 "default": 6500
+            },
+            "forward": {
+                "description": "Webhook 转发",
+                "type": "object",
+                "hint": "可选，把收到的原始 webhook JSON 原样转发到另一台服务器",
+                "items": {
+                    "enabled": {
+                        "description": "启用转发",
+                        "type": "bool",
+                        "default": false
+                    },
+                    "url": {
+                        "description": "目标地址",
+                        "type": "string",
+                        "hint": "例如 https://example.com/webhook",
+                        "default": ""
+                    },
+                    "timeout": {
+                        "description": "超时时间",
+                        "type": "int",
+                        "hint": "单位：秒",
+                        "default": 10
+                    },
+                    "authorization": {
+                        "description": "Authorization 请求头",
+                        "type": "string",
+                        "hint": "可选，留空则不携带 Authorization",
+                        "default": ""
+                    }
+                }
             }
         }
     },
     "api_config": {
-        "description": "API配置",
+        "description": "API 配置",
         "type": "object",
-        "hint": "通过API主动获取订单订单消息, 请在爱发电APP的“个人”->“右上角”->“开发者”中查看你的user_id和Token",
+        "hint": "在爱发电开发者设置中查看 user_id、token 和当前可用域名",
         "items": {
             "user_id": {
                 "description": "user_id",
@@ -30,22 +60,28 @@
             "token": {
                 "description": "api_token",
                 "type": "string"
+            },
+            "base_url": {
+                "description": "爱发电根地址",
+                "type": "string",
+                "hint": "默认 https://ifdian.net，修改后会同时影响 API 请求和支付链接",
+                "default": "https://ifdian.net"
             }
         }
     },
     "pay_config": {
         "description": "支付设置",
         "type": "object",
-        "hint": "插件会根据支付信息生成一个链接，用户点击链接后跳转到爱发电支付页面",
+        "hint": "插件会根据配置生成爱发电支付链接",
         "items": {
             "default_price": {
-                "description": "发起赞助时的默认金额",
+                "description": "默认发电金额",
                 "type": "int",
                 "hint": "单位：元",
                 "default": 5
             },
             "default_reply": {
-                "description": "赞助成功后的默认回复语",
+                "description": "赞助成功后的默认回复",
                 "type": "string",
                 "hint": "需要消息平台支持主动回复",
                 "default": "赞助成功，感谢支持！"
@@ -53,9 +89,9 @@
         }
     },
     "notices": {
-        "description": "接收订单通知的会话ID",
+        "description": "接收订单通知的会话 ID",
         "type": "list",
-        "hint": "可不填，在会话中用“爱发电通知”即可开启通知",
+        "hint": "留空则不推送会话通知",
         "default": []
     }
 }

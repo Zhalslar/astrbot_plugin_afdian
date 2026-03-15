@@ -1,6 +1,6 @@
-name: astrbot_plugin_afdian # 这是你的插件的唯一识别名。
-desc: 爱发电对接插件，接受用户打赏，实时推送订单情况  # 插件简短描述
+name: astrbot_plugin_afdian
+desc: 爱发电对接插件，支持完整 webhook/API 展示、可选转发与自定义域名
 help: None
-version: v1.0.2 # 插件版本号。格式：v1.1.1 或者 v1.1
-author: Zhalslar # 作者
-repo: https://github.com/Zhalslar/astrbot_plugin_afdian # 插件的仓库地址
+version: v1.0.4
+author: Zhalslar
+repo: https://github.com/Zhalslar/astrbot_plugin_afdian

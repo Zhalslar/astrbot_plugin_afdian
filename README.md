@@ -1,57 +1,70 @@
-
-<div align="center">
-
-![:name](https://count.getloli.com/@astrbot_plugin_afdian?name=astrbot_plugin_afdian&theme=minecraft&padding=6&offset=0&align=top&scale=1&pixelated=1&darkmode=auto)
-
 # astrbot_plugin_afdian
 
-_✨ [astrbot](https://github.com/AstrBotDevs/AstrBot) 爱发电插件 ✨_  
+AstrBot 爱发电插件，支持：
 
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![AstrBot](https://img.shields.io/badge/AstrBot-3.4%2B-orange.svg)](https://github.com/Soulter/AstrBot)
-[![GitHub](https://img.shields.io/badge/作者-Zhalslar-blue)](https://github.com/Zhalslar)
+- 生成爱发电支付链接
+- 接收 webhook 订单通知
+- 将 webhook 的完整 JSON 内容渲染成图片发送到会话
+- API 查询结果按完整返回结构展示
+- 可选把收到的原始 webhook JSON 转发到另一台服务器
+- 支持自定义爱发电根域名，兼容平台换域名
 
-</div>
-
-## 🤝 介绍
-
-对接爱发电平台，接受用户打赏，实时推送订单情况
-
-## 📦 安装
-
-- 可以直接在astrbot的插件市场搜索astrbot_plugin_afdian，点击安装，耐心等待安装完成即可
-- 若是安装失败，可以尝试直接克隆源码：
+## 安装
 
 ```bash
-# 克隆仓库到插件目录
 cd /AstrBot/data/plugins
 git clone https://github.com/Zhalslar/astrbot_plugin_afdian
-
-# 控制台重启AstrBot
 ```
 
-## ⌨️ 使用说明
+重启 AstrBot 后完成加载。
 
-### 命令表
+## 命令
 
-| 命令 | 说明 |
-|:--:|:--|
-| `发电 [金额]` | 向创作者发电, 别名：`赞助` |
-| `爱发电通知` | 开启当前会话的爱发电订单通知（仅管理员可用） |
-| `爱发电测试` | 手动触发一次测试通知，测试通知功能是否正常（仅管理员可用） |
-| `查询订单 <订单号>` | 查询指定订单的详情信息（仅管理员可用） |
-| `查询发电` | 查询默认账号收到的赞助记录（仅管理员可用）。别名：`查询赞助`仅管理员可用） |
+- `发电 [金额]`
+- `赞助 [金额]`
+- `查询订单 <订单号>`
+- `查询发电`
+- `查询赞助`
 
-### 示例图
+## 配置
 
-## 👥 贡献指南
+### 基础配置
 
-- 🌟 Star 这个项目！（点右上角的星星，感谢支持！）
-- 🐛 提交 Issue 报告问题
-- 💡 提出新功能建议
-- 🔧 提交 Pull Request 改进代码
+```json
+{
+  "api_config": {
+    "user_id": "你的 user_id",
+    "token": "你的 token",
+    "base_url": "https://ifdian.net"
+  },
+  "webhook_config": {
+    "host": "0.0.0.0",
+    "port": 6500
+  }
+}
+```
 
-## 📌 注意事项
+### 启用完整 webhook 转发
 
-- 想第一时间得到反馈的可以来作者的插件反馈群（QQ群）：460973561
+```json
+{
+  "webhook_config": {
+    "host": "0.0.0.0",
+    "port": 6500,
+    "forward": {
+      "enabled": true,
+      "url": "https://example.com/webhook",
+      "timeout": 10,
+      "authorization": ""
+    }
+  }
+}
+```
+
+说明：
+
+- 会话通知图片展示的是收到的完整 webhook payload。
+- `查询订单` 和 `查询发电/查询赞助` 展示的是 API 原始返回结构，不再只显示摘要字段。
+- `api_config.base_url` 是爱发电根地址，默认是 `https://ifdian.net`，修改后会同时影响 API 请求地址和支付链接地址。
+- 转发功能为可选配置，开启后会把收到的原始 JSON body 原样 `POST` 到目标地址。
+- 如果转发失败，只会记录日志，不会影响当前 webhook 对爱发电返回成功响应。
