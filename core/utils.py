@@ -3,7 +3,6 @@ from datetime import datetime
 
 @staticmethod
 def format_time(timestamp):
-    """格式化时间戳为日期时间字符串"""
     if not timestamp:
         return None
     return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")

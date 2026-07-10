@@ -30,15 +30,15 @@
                 "default": "https://afdian.com/api/open"
             },
             "user_id": {
-                "description": "user_id",
+                "description": "用户 ID (user_id)",
                 "type": "string",
-                "hint": "用户 ID。请在爱发电APP的“个人”->“右上角”->“开发者”中查看",
+                "hint": "请在爱发电APP的“个人”->“右上角”->“开发者”中查看",
                 "default": ""
             },
             "token": {
-                "description": "api_token",
+                "description": "API 密钥 (api_token)",
                 "type": "string",
-                "hint": "API 密钥。请在爱发电APP的“个人”->“右上角”->“开发者”中查看",
+                "hint": "请在爱发电APP的“个人”->“右上角”->“开发者”中查看",
                 "default": ""
             }
         }
