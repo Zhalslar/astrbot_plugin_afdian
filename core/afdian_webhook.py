@@ -1,3 +1,5 @@
+import asyncio
+import errno
 import json
 
 from aiohttp import web
@@ -17,6 +19,7 @@ class AfdianWebhookServer:
         self.runner = None
         self.site = None
         self._started = False
+        self._callback_tasks = set()
         self.app.add_routes(
             [
                 web.post("/", self.receive_webhook),
@@ -36,14 +39,15 @@ class AfdianWebhookServer:
         try:
             data = await request.json()
             logger.info(f"收到爱发电订单通知：{json.dumps(data, ensure_ascii=False)}")
-
             order_info = data.get("data", {}).get("order", {})
             if not order_info:
                 logger.warning("未找到订单信息")
                 return web.json_response({"ec": 200, "em": "无订单"})
 
             await self.handle_order(order_info)
-            return web.json_response({"ec": 200, "em": ""})
+            resp = {"ec": 200, "em": ""}
+            logger.info(f"响应：{json.dumps(resp, ensure_ascii=False)}")
+            return web.json_response(resp)
 
         except Exception as e:
             logger.error(f"处理通知失败: {e}")
@@ -58,17 +62,33 @@ class AfdianWebhookServer:
                 if hasattr(self._order_callback, "__call__"):
                     res = self._order_callback(order)
                     if hasattr(res, "__await__"):
-                        await res  # type: ignore # 兼容 async 回调
+                        task = asyncio.create_task(res)  # type: ignore
+                        self._callback_tasks.add(task)
 
-    async def start(self):
+                        def on_callback_done(task: asyncio.Task) -> None:
+                            self._callback_tasks.discard(task)
+                            try:
+                                task.result()
+                            except asyncio.CancelledError:
+                                pass
+                            except Exception as e:
+                                logger.error(f"订单回调处理失败: {e}")
+
+                        task.add_done_callback(on_callback_done)
+
+    async def start(self) -> bool:
         """Start the aiohttp webhook service.
 
+        Returns:
+            Whether the webhook service was started.
+
         Raises:
-            OSError: The configured address is already occupied.
+            OSError: The configured address cannot be bound for reasons other than
+                being occupied.
         """
         if self._started:
             logger.warning("Webhook 已经启动，无需重复绑定")
-            return
+            return True
 
         if self.runner or self.site:
             await self.stop()
@@ -79,6 +99,20 @@ class AfdianWebhookServer:
             self.site = web.TCPSite(self.runner, host=self.cfg.host, port=self.cfg.port)
             await self.site.start()
             self._started = True
+        except OSError as e:
+            if self.runner:
+                await self.runner.cleanup()
+            self.runner = None
+            self.site = None
+            self._started = False
+
+            if e.errno == errno.EADDRINUSE:
+                logger.error(
+                    f"爱发电 Webhook 端口已被占用，插件继续载入但不会启动监听："
+                    f"{self.cfg.host}:{self.cfg.port}"
+                )
+                return False
+            raise
         except Exception:
             if self.runner:
                 await self.runner.cleanup()
@@ -87,6 +121,7 @@ class AfdianWebhookServer:
             self._started = False
             raise
         logger.info(f"爱发电 Webhook 服务已启动：监听 {self.cfg.host}:{self.cfg.port}")
+        return True
 
     async def stop(self):
         """Stop the aiohttp webhook service."""
@@ -94,6 +129,9 @@ class AfdianWebhookServer:
             await self.site.stop()
         if self.runner:
             await self.runner.cleanup()
+        for task in self._callback_tasks:
+            task.cancel()
+        self._callback_tasks.clear()
         self.runner = None
         self.site = None
         self._started = False
