@@ -20,7 +20,6 @@ class AfdianAPIClient:
         self.session = aiohttp.ClientSession()
 
     async def close(self):
-        """关闭 aiohttp 会话（建议在应用退出时调用）"""
         await self.session.close()
 
     def _generate_sign(self, params: dict, ts: int) -> str:

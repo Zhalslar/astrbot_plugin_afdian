@@ -33,11 +33,8 @@ class OrderDB:
         self._init_db()
 
     def _init_db(self):
-        """初始化订单表结构，并创建索引"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-
-            # 创建表
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS afdian_orders (
                     out_trade_no TEXT PRIMARY KEY,
@@ -62,7 +59,6 @@ class OrderDB:
                 )
             """)
 
-            # 索引
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_user_id ON afdian_orders(user_id)"
             )
@@ -75,7 +71,6 @@ class OrderDB:
             conn.commit()
 
     def save_order(self, order: OrderDict):
-        """保存订单信息"""
         fields = {
             "out_trade_no": order.get("out_trade_no") or "",
             "user_id": order.get("user_id") or "",
@@ -113,7 +108,6 @@ class OrderDB:
             conn.commit()
 
     def get_all_orders(self) -> list[sqlite3.Row]:
-        """获取所有订单（按时间降序）"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -121,7 +115,6 @@ class OrderDB:
             return cursor.fetchall()
 
     def get_order_by_id(self, out_trade_no: str) -> sqlite3.Row | None:
-        """根据订单号获取订单"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -131,7 +124,6 @@ class OrderDB:
             return cursor.fetchone()
 
     def get_orders_by_user(self, user_id: str) -> list[sqlite3.Row]:
-        """获取指定用户的所有订单"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -142,7 +134,6 @@ class OrderDB:
             return cursor.fetchall()
 
     def get_orders_by_status(self, status: int) -> list[sqlite3.Row]:
-        """按订单状态筛选"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -154,7 +145,6 @@ class OrderDB:
 
     @staticmethod
     def _safe_float(value: str | float | int | Decimal | None) -> float:
-        """将任意值转换为 float，失败则返回 0.0"""
         try:
             return float(value)  # type: ignore
         except (ValueError, TypeError):
