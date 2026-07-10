@@ -1,5 +1,3 @@
-import asyncio
-import errno
 import json
 
 from aiohttp import web
@@ -66,7 +64,7 @@ class AfdianWebhookServer:
         """Start the aiohttp webhook service.
 
         Raises:
-            OSError: The configured address is still occupied after retries.
+            OSError: The configured address is already occupied.
         """
         if self._started:
             logger.warning("Webhook 已经启动，无需重复绑定")
@@ -75,44 +73,19 @@ class AfdianWebhookServer:
         if self.runner or self.site:
             await self.stop()
 
-        max_attempts = 5
-        retry_delay = 0.5
-        for attempt in range(1, max_attempts + 1):
-            self.runner = web.AppRunner(self.app)
-            try:
-                await self.runner.setup()
-                self.site = web.TCPSite(
-                    self.runner, host=self.cfg.host, port=self.cfg.port
-                )
-                await self.site.start()
-                self._started = True
-                break
-            except OSError as e:
-                if self.runner:
-                    await self.runner.cleanup()
-                self.runner = None
-                self.site = None
-                self._started = False
-
-                if e.errno == errno.EADDRINUSE and attempt < max_attempts:
-                    logger.warning(
-                        "Webhook port %s:%s is in use, retrying in %.1fs (%s/%s)",
-                        self.cfg.host,
-                        self.cfg.port,
-                        retry_delay,
-                        attempt,
-                        max_attempts,
-                    )
-                    await asyncio.sleep(retry_delay)
-                    continue
-                raise
-            except Exception:
-                if self.runner:
-                    await self.runner.cleanup()
-                self.runner = None
-                self.site = None
-                self._started = False
-                raise
+        self.runner = web.AppRunner(self.app)
+        try:
+            await self.runner.setup()
+            self.site = web.TCPSite(self.runner, host=self.cfg.host, port=self.cfg.port)
+            await self.site.start()
+            self._started = True
+        except Exception:
+            if self.runner:
+                await self.runner.cleanup()
+            self.runner = None
+            self.site = None
+            self._started = False
+            raise
         logger.info(f"爱发电 Webhook 服务已启动：监听 {self.cfg.host}:{self.cfg.port}")
 
     async def stop(self):
