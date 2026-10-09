@@ -29,11 +29,12 @@ class OrderDict(TypedDict, total=False):
 
 class OrderDB:
     def __init__(self, db_path: str | Path):
-        self.db_path = str(db_path)
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
     def _init_db(self):
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS afdian_orders (
